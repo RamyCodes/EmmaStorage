@@ -85,10 +85,10 @@ export default function TrackerHeader() {
           title="Storage Check-Out Tracker"
         >
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            📦 Storage Check-Out
+            📦 EmmaStorage Tracker
           </h1>
           <p className="mt-0.5 text-xs text-slate-500">
-            Multi-item cart tracker with batch photos
+            Tracker for Emmanuel's Storage
           </p>
         </div>
 
