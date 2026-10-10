@@ -1,12 +1,12 @@
-import Image from "next/image";
 import { version } from "@/package.json";
 import ActivityForm from "./activity-form";
+import AdminAccess from "./admin-access";
 
 export default function Home() {
   return (
     <main className="app-shell">
       <header className="brand-header">
-        <Image className="brand-logo" src="/images.jpg" width={72} height={72} alt="Emmanuel logo" />
+        <AdminAccess />
         <div className="brand-name">
           <h1>Emmanuel <span>Egypt</span></h1>
           <p className="brand-subtitle">Storage activity</p>

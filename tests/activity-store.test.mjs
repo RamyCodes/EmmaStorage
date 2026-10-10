@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { JWT } from "google-auth-library";
-import { appendActivity, prepareActivitySheet } from "../lib/activity-store.ts";
+import { appendActivity, getActivities, prepareActivitySheet } from "../lib/activity-store.ts";
 
 function setup(context, responses) {
   process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL = "test@example.invalid";
@@ -54,4 +54,22 @@ test("every activity writes one row and treats a formula-like name as text", asy
 test("spreadsheet errors are not reported as successful writes", async (context) => {
   setup(context, [{ status: 403, body: {} }]);
   await assert.rejects(appendActivity({ timestamp: "now", person: "Ramy", action: "Return", photoUrl: "https://example.com/photo.jpg", id: "test-id" }), /403/);
+});
+
+test("dashboard returns empty without creating a missing activity tab", async (context) => {
+  const calls = setup(context, [{ body: { sheets: [{ properties: { title: "Log" } }] } }]);
+  assert.deepEqual(await getActivities(), []);
+  assert.equal(calls.length, 1);
+});
+
+test("dashboard returns newest first, limits entries, and rejects unsafe photo links", async (context) => {
+  const rows = Array.from({ length: 502 }, (_, index) => ["2026-10-10T12:00:00.000Z", `Person ${index}`, "Take", "formula", index === 501 ? "javascript:alert(1)" : "https://example.public.blob.vercel-storage.com/test.jpg", `id-${index}`]);
+  rows.push(["now", "Unknown", "StockAdjustment"]);
+  setup(context, [{ body: { sheets: [{ properties: { title: "Activity" } }] } }, { body: { values: rows } }]);
+  const records = await getActivities();
+  assert.equal(records.length, 500);
+  assert.equal(records[0].person, "Person 501");
+  assert.equal(records[0].photoUrl, "");
+  assert.equal(records[1].photoUrl, "https://example.public.blob.vercel-storage.com/test.jpg");
+  assert.equal(records.at(-1).person, "Person 2");
 });

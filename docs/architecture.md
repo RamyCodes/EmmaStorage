@@ -2,8 +2,8 @@
 
 The simplified Emmanuel app records one activity per submission: free-text
 name, Take / Return / Consume segmented selection, and a required photo for
-every action. There is no stock, catalog, people list, admin workflow, or
-dashboard. Google Sheets stores activity rows; public Vercel Blob stores photos.
+every action. There is no stock, catalog, or people list. A password-protected
+read-only dashboard reads activity rows; public Vercel Blob stores photos.
 
 ## Components
 
@@ -18,8 +18,8 @@ dashboard. Google Sheets stores activity rows; public Vercel Blob stores photos.
 | Vercel Blob | Public photo URLs used by Sheet `IMAGE` formulas |
 
 Next.js App Router, Tailwind CSS, and PWA support remain. The synced app name is
-**EmmaStorage Tracker**. Cobalt, teal, and gold inspire the theme; the actual
-supplied logo has not been saved in the workspace.
+**Emmanuel Egypt**. Cobalt, teal, and gold inspire the theme. Local transparent
+header and opaque installed-app logos are bundled with the app.
 
 ## Submission Flow
 
@@ -47,11 +47,21 @@ The `Activity` columns are **Time UTC**, **Name**, **Action**, **Photo**,
 `=IMAGE("https://...")` formula; `Photo URL` preserves the public URL separately.
 The backend uses four server-side environment variables:
 `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`, and
-`BLOB_READ_WRITE_TOKEN`. `ADMIN_PASSWORD` is unused.
+`BLOB_READ_WRITE_TOKEN`. `ADMIN_PASSWORD` enables the admin dashboard.
+
+## Admin Flow
+
+The header logo opens a native modal password form. `POST /api/admin/session`
+checks origin, throttles attempts per instance, verifies the password, and
+sets a signed eight-hour HTTP-only cookie. The dashboard server page and
+`GET /api/admin/activities` verify this cookie before reading Sheets.
+Only the latest 500 valid rows are returned; existing tabs are never changed.
+`DELETE /api/admin/session` removes the cookie. No password is saved on the
+client. Strong credentials and deployment-level rate limiting are recommended.
 
 ## Trust and Durability
 
-- There is no login; a name does not establish verified identity. Anyone with
+- Regular submissions need no login; a name does not establish verified identity. Anyone with
     the app link can submit, and anyone with a public photo URL can view it.
     Private or sensitive photos should not be used.
 - `IMAGE` is URL-backed, not embedded image storage. Images **must not be

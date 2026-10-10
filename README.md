@@ -3,7 +3,8 @@
 A mobile-first Emmanuel activity logger backed by Google Sheets and Vercel
 Blob. The form has exactly three inputs: a free-text name, a **Take / Return /
 Consume** segmented selection, and a **required photo for every action**.
-There is no stock tracking, catalog, people list, admin access, or dashboard.
+There is no stock tracking, catalog, or people list. Clicking the header logo
+opens password-protected access to a read-only activity dashboard.
 
 ## Documentation
 
@@ -24,7 +25,8 @@ GOOGLE_SHEET_ID=your-spreadsheet-id
 BLOB_READ_WRITE_TOKEN=your-blob-token
 ```
 
-`ADMIN_PASSWORD` is unused. Keep credentials out of source control.
+Set `ADMIN_PASSWORD` to a strong, unique password to enable the admin dashboard.
+There is no default password. Keep credentials out of source control.
 
 ```bash
 npm install
@@ -49,12 +51,12 @@ does not read Google Sheets. On submission, the backend auto-creates an
    Sheets REST requests, and public Vercel Blob photo storage.
 
 Next.js App Router, Tailwind CSS, and PWA support remain. The visual theme is
-inspired by cobalt, teal, and gold; the actual supplied logo has not been saved
-in the workspace.
+inspired by cobalt, teal, and gold. The supplied logos are bundled locally;
+static PNGs provide browser, iOS, and installed-app icons.
 
 ## Privacy and Retention
 
-There is no login and a typed name is not verified identity. Anyone with a
+Regular activity submission requires no login and a typed name is not verified identity. Anyone with a
 photo's public URL can access it; avoid private or sensitive photos.
 The Sheet's `IMAGE` formula is URL-backed, not an embedded archive. Images
 **must not be deleted unless separately archived**. Excel exports may not embed

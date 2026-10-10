@@ -1,7 +1,7 @@
 import "server-only";
 import { JWT } from "google-auth-library";
 import { put } from "@vercel/blob";
-import type { ActivityAction } from "./activity";
+import type { ActivityAction, ActivityRecord } from "./activity";
 
 let authClient: JWT | undefined;
 
@@ -72,5 +72,27 @@ export async function uploadPhotoToBlob({ file, fileName }: { file: Buffer; file
     access: "public",
     token: process.env.BLOB_READ_WRITE_TOKEN.trim(),
     abortSignal: AbortSignal.timeout(20000),
+  });
+}
+
+export async function getActivities(): Promise<ActivityRecord[]> {
+  const metadata = await sheetRequest("?fields=sheets.properties.title");
+  if (!metadata.sheets?.some((sheet: { properties?: { title?: string } }) => sheet.properties?.title === "Activity")) return [];
+  const data = await sheetRequest("/values/Activity!A2:F?valueRenderOption=FORMATTED_VALUE");
+  const rows: unknown[][] = data.values ?? [];
+  return rows.filter((row) => row[0] && ["Take", "Return", "Consume"].includes(String(row[2]))).slice(-500).reverse().map((row, index) => {
+    const rawUrl = String(row[4] ?? "");
+    let photoUrl = "";
+    try {
+      const url = new URL(rawUrl);
+      if (url.protocol === "https:" && url.hostname.endsWith(".public.blob.vercel-storage.com")) photoUrl = url.href;
+    } catch {}
+    return {
+      timestamp: String(row[0]),
+      person: String(row[1] ?? ""),
+      action: row[2] as ActivityAction,
+      photoUrl,
+      id: String(row[5] ?? "") || `row-${index}`,
+    };
   });
 }

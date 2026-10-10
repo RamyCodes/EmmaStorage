@@ -1,5 +1,12 @@
 export const ACTIONS = ["Take", "Return", "Consume"] as const;
 export type ActivityAction = (typeof ACTIONS)[number];
+export type ActivityRecord = {
+  timestamp: string;
+  person: string;
+  action: ActivityAction;
+  photoUrl: string;
+  id: string;
+};
 export const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 

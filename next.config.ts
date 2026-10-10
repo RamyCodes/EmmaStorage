@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/dashboard/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      },
+      {
         source: "/sw.js",
         headers: [
           { key: "Content-Type", value: "application/javascript; charset=utf-8" },

@@ -1,8 +1,8 @@
 # EmmaStorage Tracker: Setup and Operations
 
-This is an operator guide, not an in-app admin feature. The simplified Emmanuel
-app has no admin password gate, dashboard, stock tracking, catalog, or people
-list. No deployment has been performed; live end-to-end operation is not claimed.
+The Emmanuel Egypt app includes a password-protected, read-only activity log.
+There is no stock tracking, catalog, or people list. Live photo submission
+end-to-end operation is not claimed.
 
 ## Google Sheets
 
@@ -37,8 +37,35 @@ GOOGLE_SHEET_ID=your-spreadsheet-id
 BLOB_READ_WRITE_TOKEN=your-blob-token
 ```
 
-Keep the private key's `\n` escapes when using this format. `ADMIN_PASSWORD`
-is unused. Do not expose these variables as public client-side configuration.
+Keep the private key's `\n` escapes when using this format. Also set
+`ADMIN_PASSWORD` to a strong, unique password to enable admin access.
+Do not expose these variables as public client-side configuration.
+
+## Admin Activity Log
+
+Click the header logo and enter `ADMIN_PASSWORD`, or visit `/dashboard`.
+The dashboard shows the latest 500 valid activity rows, newest first, with
+action totals, name search, action filtering, photo links, refresh, and sign-out.
+No stock tools or edits are available. A missing `Activity` tab displays an
+empty log without creating or changing the spreadsheet.
+
+The server verifies the password and issues a signed, HTTP-only, same-site
+cookie valid for eight hours, HTTPS-only in production. Changing the password
+invalidates existing sessions. Sign-out removes the browser cookie. Dashboard
+pages and API responses are not cached by the service worker.
+
+Login attempts are limited to five per address per 15 minutes on each server
+instance. This is best-effort, not a distributed rate limiter. For public
+deployments, add Vercel Firewall rate limiting to `/api/admin/session`. Use a
+strong password; never store it in browser storage or commit it.
+
+## Installed App Icons
+
+Icons are configured in this repository, not Vercel. The background-backed logo
+is used in `app/icon.png`, `app/apple-icon.png`, and the 192px/512px public PNGs
+referenced by the manifest. Deploy the updated project to publish them.
+Some phones cache home-screen icons; remove and re-add the installed app after
+deployment if the old icon remains. The header uses the transparent logo.
 
 ## Local Checks and Deployment
 
@@ -57,7 +84,7 @@ Repeat for Take, Return, and Consume. This is a verification procedure, not a
 claim that live end-to-end tests have already passed.
 
 For deployment, import the repository into Vercel as a Next.js project, connect
-the Blob store, set all four variables, and deploy. Verify a submission in that
+the Blob store, set the four storage variables plus `ADMIN_PASSWORD`, and deploy. Verify a submission in that
 environment before distributing the URL or a QR code. No deployment was
 performed as part of this update.
 

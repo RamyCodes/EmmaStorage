@@ -11,7 +11,13 @@ login is required. Your typed name is self-reported, not verified identity.
 4. Submit and wait for confirmation before leaving the page.
 
 These are the only inputs. There are no item lists, quantities, notes, stock
-counts, people dropdowns, admin tools, or dashboard.
+counts or people dropdowns in the submission form.
+
+## Admin Access
+
+Click the header logo and enter the admin password to open the activity log.
+Administrators can search by name, filter actions, open photos, refresh the
+log, and sign out. Regular submissions do not need this password.
 
 Photos are resized on your device to a maximum 1600px dimension and converted
 to JPEG at quality `0.82`. The API accepts JPEG, PNG, or WebP photos up to 3 MB

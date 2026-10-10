@@ -1,4 +1,4 @@
-const CACHE_NAME = "emmastorage-activity-v2";
+const CACHE_NAME = "emmastorage-activity-v3";
 const APP_SHELL = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -26,7 +26,7 @@ self.addEventListener("fetch", (event) => {
 
   // Never intercept mutations or API calls — transactions must always hit the network live.
   const url = new URL(request.url);
-  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) {
+  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/") || url.pathname.startsWith("/dashboard")) {
     return;
   }
 
