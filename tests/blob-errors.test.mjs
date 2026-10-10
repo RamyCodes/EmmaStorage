@@ -18,3 +18,15 @@ test("unknown storage errors never reveal tokens or raw server messages", () => 
   assert.equal(result.code, "BLOB_UPLOAD_FAILED");
   assert.equal(result.message.includes("SECRET_TOKEN_VALUE"), false);
 });
+
+test("production-minified constructor names do not hide Blob error types", () => {
+  for (const [ErrorClass, code] of [
+    [BlobAccessError, "BLOB_ACCESS_DENIED"],
+    [BlobStoreNotFoundError, "BLOB_STORE_NOT_FOUND"],
+    [BlobStoreSuspendedError, "BLOB_STORE_SUSPENDED"],
+  ]) {
+    const error = new ErrorClass();
+    Object.defineProperty(error, "constructor", { value: { name: "Y" } });
+    assert.equal(describeBlobFailure(error).code, code);
+  }
+});
