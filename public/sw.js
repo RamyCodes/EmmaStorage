@@ -1,4 +1,4 @@
-const CACHE_NAME = "storage-tracker-v1";
+const CACHE_NAME = "emmastorage-activity-v2";
 const APP_SHELL = ["/", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
@@ -25,17 +25,20 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   // Never intercept mutations or API calls — transactions must always hit the network live.
-  if (request.method !== "GET" || request.url.includes("/api/")) {
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin || url.pathname.startsWith("/api/")) {
     return;
   }
 
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        if (response.ok && !response.redirected) {
+          const copy = response.clone();
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {}));
+        }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+      .catch(async () => (await caches.match(request)) || (request.mode === "navigate" ? await caches.match("/") : null) || Response.error())
   );
 });

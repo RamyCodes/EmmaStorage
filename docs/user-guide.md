@@ -1,61 +1,40 @@
-# User Guide — Storage Check-Out Tracker
+# EmmaStorage Tracker: User Guide
 
-A quick way to log what you take out of, return to, or use up from the storage
-room. No account, no password — just open the link and go.
+Open the Emmanuel app link or scan its QR code with your phone. No account or
+login is required. Your typed name is self-reported, not verified identity.
 
-## Getting the app
+## Record an Activity
 
-Someone with access to the storage room will give you a **link or QR code**.
+1. Enter your name as free text, up to 100 characters.
+2. Choose **Take**, **Return**, or **Consume** using the segmented selection.
+3. Take or select a clear photo. A photo is required for **all three actions**.
+4. Submit and wait for confirmation before leaving the page.
 
-- **Scan the QR code** with your phone's camera app, or
-- **Open the link** in your phone's browser.
+These are the only inputs. There are no item lists, quantities, notes, stock
+counts, people dropdowns, admin tools, or dashboard.
 
-There's nothing to install and nothing to sign in to.
+Photos are resized on your device to a maximum 1600px dimension and converted
+to JPEG at quality `0.82`. The API accepts JPEG, PNG, or WebP photos up to 3 MB
+and checks their file signatures. A successful submission records one row in
+the Google Sheet's `Activity` tab.
 
-### Add it to your Home Screen (recommended)
+## Photos and Submission Problems
 
-This makes it open like a regular app, full-screen, with one tap.
+Avoid private or sensitive photos: anyone with a photo's public URL can access
+it. The Sheet displays a URL-backed `IMAGE` preview, not an archived copy.
+Images **must not be deleted unless separately archived**. Excel exports may
+not embed images; the operator must verify exports and archive photos separately.
 
-**iPhone / iPad (Safari):**
-1. Open the link in Safari.
-2. Tap the **Share** icon (square with an arrow) at the bottom.
-3. Tap **Add to Home Screen**, then **Add**.
+If a submission fails, the photo may already have uploaded. If it times out,
+the activity may already be recorded. Ask the operator to check the Sheet
+before retrying to avoid duplicates. The app does not automatically retry.
+Loading the home page is not proof that submission services are working.
 
-**Android (Chrome):**
-1. Open the link in Chrome.
-2. Tap the **⋮** menu in the top right.
-3. Tap **Add to Home screen** (or **Install app**), then confirm.
+## Add to Home Screen
 
-## Logging items (Multi-item cart flow)
+- **iPhone / iPad:** open the link in Safari, choose **Share**, then **Add to
+  Home Screen**.
+- **Android:** open the link in Chrome and choose **Add to Home screen** or
+  **Install app** from the browser menu.
 
-1. **Choose what you're doing:**
-   - **Take Out** 📤 — borrowing tools or returnable gear.
-   - **Return** 📥 — bringing items back.
-   - **Used Up** 🗑️ — consuming supplies (tape, gloves, etc.).
-2. **Add items to your list:**
-   - Pick an item from the dropdown.
-   - Set the quantity using the `+` / `−` buttons or numeric input.
-   - If stock is low, a friendly notice appears: *"System shows only X left — continue anyway?"*. You can tap **"Continue anyway & add"** — the app will never block you from completing your work.
-   - Tap **"+ Add to list"**.
-   - Repeat for as many items as you want! You can adjust quantities or remove lines directly in the running list.
-3. **Select your name:**
-   - Choose who you are from the "Who are you?" dropdown.
-4. *(Optional)* **Add a note:**
-   - e.g. "Job #402" or "Found drill bit blunt".
-5. **Snap a batch photo:**
-   - **Required for Return 📥**: Snap a clear photo of the items being returned.
-   - **Optional for Take Out 📤 / Used Up 🗑️**: Helpful for visual record keeping.
-   - Tap the camera button to open your phone camera. You'll see an instant preview with a "Retake" button.
-6. Tap **Submit**:
-   - The app uploads the photo to Vercel Blob and records all items in a single batch in the Google Sheet.
-
-You'll see a confirmation like:
-
-> ✅ Recorded: Alex Kim took out 2 × Cordless Drill, 1 × Extension Cord
-
-## Viewing the Dashboard (Admin)
-
-The Dashboard is discreetly hidden from everyday users. If you are an administrator:
-1. Tap the **📦 Storage Check-Out** title 5 times in quick succession.
-2. Enter the Admin Password in the popup modal.
-3. The **📊 Dashboard** will unlock, allowing you to view discrepancy logs, live inventory levels, and perform stock adjustments.
+Installation is optional. An internet connection is needed to submit.

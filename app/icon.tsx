@@ -13,13 +13,13 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0f172a",
-          color: "#ffffff",
+          background: "#234895",
+          color: "#f1d47b",
           fontSize: 28,
           fontWeight: 700,
         }}
       >
-        S
+        E
       </div>
     ),
     size

@@ -1,64 +1,78 @@
-# Storage Check-Out Tracker
+# EmmaStorage Tracker
 
-A mobile-first PWA for logging items taken out of and returned to a physical
-storage room, backed by Google Sheets and Vercel Blob. Supports multi-item cart
-checkouts, soft stock validation warnings, single batch checkout photo uploads,
-and a stock discrepancy & audit dashboard.
+A mobile-first Emmanuel activity logger backed by Google Sheets and Vercel
+Blob. The form has exactly three inputs: a free-text name, a **Take / Return /
+Consume** segmented selection, and a **required photo for every action**.
+There is no stock tracking, catalog, people list, admin access, or dashboard.
 
-**Docs:**
+## Documentation
 
-- [Architecture & flow diagrams](./docs/architecture.md)
 - [User guide](./docs/user-guide.md)
-- [Admin guide](./docs/admin-guide.md) — Google Sheets + Vercel Blob setup, environment variables, deployment
-
-## Key Features
-
-- **Multi-Item Cart Flow**: Select action, add multiple items with editable quantities to an interactive running list, and submit all at once in a single batch.
-- **Soft Stock Validation**: Never blocks checkouts — friendly inline warnings for low/negative stock, flagged with `StockFlag = Discrepancy` in the audit log.
-- **Single Batch Checkout Photo via Vercel Blob**: One camera snap per batch (required for Return, optional for others) uploaded to Vercel Blob and embedded into the Sheet via `=IMAGE(...)` formula thumbnails.
-- **Zero Login / No Accounts Required**: Anyone with the QR code or link can immediately check out items and upload photos without creating an account or logging in.
-- **Secret Admin Access & Stock Adjustments**: Dashboard is hidden from regular users behind a 5-tap header easter egg and protected with an Admin Password.
-- **PWA & Mobile-First**: Installable to iOS/Android home screens, big tactile touch targets.
-
-## Stack
-
-- Next.js (App Router) — frontend + API route handlers
-- Google Sheets API (via Google Cloud Service Account)
-- Vercel Blob — photo storage for batch checkout photos
-- Tailwind CSS — mobile-first styling
-- PWA manifest + service worker
+- [Setup and operations](./docs/admin-guide.md)
+- [Architecture](./docs/architecture.md)
 
 ## Quick Start
 
-1. Follow [`docs/admin-guide.md`](./docs/admin-guide.md) to create the Google Sheet (Tabs: `Items`, `People`, `Log`), enable the Sheets API on Google Cloud, share it with your Service Account email, and create a Vercel Blob store.
-2. Copy [`.env.local.example`](./.env.local.example) to `.env.local` and populate:
-   - `GOOGLE_SERVICE_ACCOUNT_EMAIL`
-   - `GOOGLE_PRIVATE_KEY`
-   - `GOOGLE_SHEET_ID`
-   - `BLOB_READ_WRITE_TOKEN`
-   - `ADMIN_PASSWORD` (default: `admin123`)
-3. Install dependencies and run:
+Follow the [setup guide](./docs/admin-guide.md) to enable Google Sheets API,
+share a spreadsheet with a service account as Editor, and configure a public
+Vercel Blob store. Set these four server-side variables in your local environment:
 
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-4. Open [http://localhost:3000](http://localhost:3000).
-
-## Project Layout
-
+```dotenv
+GOOGLE_SERVICE_ACCOUNT_EMAIL=service-account@your-project.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_SHEET_ID=your-spreadsheet-id
+BLOB_READ_WRITE_TOKEN=your-blob-token
 ```
-app/page.tsx                  Server Component — fetches Items/People live, renders cart form
-app/tracker-header.tsx        Client Component — header with 5-tap secret admin unlock modal
-app/transaction-form.tsx      Client Component — interactive multi-item cart & batch photo capture
-app/dashboard/page.tsx        Server Component — dashboard with discrepancy alerts & stock audit
-app/dashboard/dashboard-view.tsx  Client Component — password gate, discrepancy filter & stock adjustments
-app/api/transaction/route.ts  API route — handles multi-item batch checkouts & Blob photo upload
-app/api/adjust-stock/route.ts API route — handles manual stock adjustments with admin password verification
-app/api/verify-admin/route.ts API route — verifies admin password
-lib/sheets.ts                 Google Sheets API helper & Vercel Blob upload module
-app/manifest.json, public/sw.js  PWA support & offline app-shell caching
-docs/                         Architecture diagrams, user guide, admin guide
+
+`ADMIN_PASSWORD` is unused. Keep credentials out of source control.
+
+```bash
+npm install
+npm run dev
 ```
+
+Open [http://localhost:3000](http://localhost:3000). The home page is static and
+does not read Google Sheets. On submission, the backend auto-creates an
+`Activity` tab with `Time UTC`, `Name`, `Action`, `Photo`, `Photo URL`, and
+`Entry ID` columns. Existing `Items`, `People`, and `Log` tabs are untouched.
+
+## Implementation
+
+- [app/page.tsx](./app/page.tsx): static home page.
+- [app/activity-form.tsx](./app/activity-form.tsx): form and client photo resizing
+   to a maximum 1600px dimension, JPEG quality `0.82`.
+- [lib/activity.ts](./lib/activity.ts): input validation; names limited to 100
+   characters and API photos to 3 MB with JPEG, PNG, or WebP signature checks.
+- [app/api/transaction/route.ts](./app/api/transaction/route.ts): single activity
+   API endpoint, `POST /api/transaction`.
+- [lib/activity-store.ts](./lib/activity-store.ts): `google-auth-library` JWT,
+   Sheets REST requests, and public Vercel Blob photo storage.
+
+Next.js App Router, Tailwind CSS, and PWA support remain. The visual theme is
+inspired by cobalt, teal, and gold; the actual supplied logo has not been saved
+in the workspace.
+
+## Privacy and Retention
+
+There is no login and a typed name is not verified identity. Anyone with a
+photo's public URL can access it; avoid private or sensitive photos.
+The Sheet's `IMAGE` formula is URL-backed, not an embedded archive. Images
+**must not be deleted unless separately archived**. Excel exports may not embed
+images: verify the export and archive photos separately.
+
+An upload can succeed while the Sheet append fails, leaving a retained orphan
+photo. An append timeout can leave the outcome unknown, so retrying may create
+a duplicate. There are no automatic retries.
+
+## Validation and Deployment
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+No deployment has been performed. These checks do not establish a live
+end-to-end test of Google Sheets and Blob; verify an actual submission before
+rolling out the app.
 

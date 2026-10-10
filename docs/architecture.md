@@ -1,100 +1,71 @@
-# Architecture
+# EmmaStorage Tracker: Architecture
 
-The Storage Check-Out Tracker is a single Next.js app (frontend + backend in one)
-that reads and writes a Google Sheet through a Google Cloud service account, and
-uploads batch checkout photos to Vercel Blob.
-There is no database and no external server infrastructure needed.
+The simplified Emmanuel app records one activity per submission: free-text
+name, Take / Return / Consume segmented selection, and a required photo for
+every action. There is no stock, catalog, people list, admin workflow, or
+dashboard. Google Sheets stores activity rows; public Vercel Blob stores photos.
 
 ## Components
 
-| Component | Role |
+| Component | Responsibility |
 |---|---|
-| **Browser / PWA** (phone) | Loads the app, supports multi-item cart flow, batch camera photo capture, "Add to Home Screen" |
-| **Next.js Server Component** (`app/page.tsx`) | Runs on page load; fetches live `Items` + `People` data for the cart form |
-| **Dashboard Page** (`app/dashboard/page.tsx`) | Audit overview, filtered `⚠ Stock Discrepancies` log, live catalog, stock adjustments |
-| **Next.js Route Handlers** (`app/api/transaction`, `app/api/adjust-stock`) | Validates batch inputs, uploads batch photo to Vercel Blob, mutates sheet quantities, appends log rows |
-| **`lib/sheets.ts`** | The central helper module for Google Sheets API operations & Vercel Blob photo uploads |
-| **Vercel Blob** | Free tier object store for single batch checkout photos; returns public URLs for in-sheet thumbnail formulas |
-| **Google Sheets API** | Accessed with a service account (no end-user OAuth login) |
-| **Google Sheet** | Three tabs: `Items`, `People`, `Log` — the entire data store |
+| [app/page.tsx](../app/page.tsx) | Static home page; no Google Sheet reads |
+| [app/activity-form.tsx](../app/activity-form.tsx) | Client form; resize photos to a maximum 1600px dimension, JPEG quality `0.82` |
+| [lib/activity.ts](../lib/activity.ts) | Validation: name maximum 100 characters, allowed actions, required photo, API maximum 3 MB, JPEG/PNG/WebP signatures |
+| [app/api/transaction/route.ts](../app/api/transaction/route.ts) | Single activity endpoint: `POST /api/transaction` |
+| [lib/activity-store.ts](../lib/activity-store.ts) | `google-auth-library` JWT service-account authentication, Sheets REST calls, public Blob uploads |
+| Google Sheets | Auto-created `Activity` tab; existing `Items`, `People`, and `Log` untouched |
+| Vercel Blob | Public photo URLs used by Sheet `IMAGE` formulas |
 
-## High-level flow
+Next.js App Router, Tailwind CSS, and PWA support remain. The synced app name is
+**EmmaStorage Tracker**. Cobalt, teal, and gold inspire the theme; the actual
+supplied logo has not been saved in the workspace.
 
-```mermaid
-flowchart TD
-    subgraph Phone["User's phone (PWA)"]
-        A["Open URL / scan QR code"] --> B["Page loads"]
-        B --> C["1. Select Action: Take Out / Return / Used Up"]
-        C --> D["2. Pick Item + Qty -> 'Add to list' (Multi-item cart)"]
-        D --> E{"Exceeds stock or low threshold?"}
-        E -->|Yes| F["Show soft inline warning: 'System shows X left — continue anyway?'"]
-        F --> G["Flag item as Discrepancy & Add to Cart"]
-        E -->|No| G
-        G --> H["3. Pick Person + Optional Note"]
-        H --> I["4. Snap batch photo (Required for Return, optional for others)"]
-        I --> J["5. Tap Submit Batch"]
-    end
-
-    subgraph Backend["Next.js Backend (Vercel)"]
-        J --> K["POST /api/transaction (multipart/form-data)"]
-        K --> L["Upload Photo to Vercel Blob (if present)"]
-        L --> M["Obtain public Blob URL\nFormat formula =IMAGE(blobUrl)"]
-        K --> N["updateItemQuantities() on Items tab"]
-        K --> O["appendLogBatch() on Log tab (one row per item, same BatchID & Timestamp)"]
-    end
-
-    subgraph Storage["External Storage"]
-        Blob[("Vercel Blob Store\n(BLOB_READ_WRITE_TOKEN)")]
-        Sheet[("Google Sheet\n• Items: Item | Type | Qty | Image URL | LowStockThreshold\n• People: Name\n• Log: Timestamp | Person | Action | Item | Qty | Note | Photo URL | BatchID | StockFlag")]
-    end
-
-    L --> Blob
-    N --> Sheet
-    O --> Sheet
-```
-
-## What happens on batch submit (`/api/transaction`)
+## Submission Flow
 
 ```mermaid
 sequenceDiagram
-    participant U as Browser (TransactionForm)
-    participant N as Route Handler (/api/transaction)
-    participant B as Vercel Blob
-    participant S as Google Sheets API
+        participant U as Browser
+        participant N as POST /api/transaction
+        participant B as Public Vercel Blob
+        participant S as Google Sheets REST API
 
-    U->>N: POST FormData (action, person, note, items JSON, optional/required photo)
-    N->>N: Validate action, person, items array, and return photo requirement
-    alt Invalid input or missing return photo
-        N-->>U: 400 { success:false, error }
-    else Valid input
-        opt Photo included
-            N->>B: put(fileName, buffer, { access: 'public' })
-            B-->>N: public url -> =IMAGE(url) formula
-        end
-        N->>S: values.get Items!A2:E
-        N->>S: batchUpdate Items!C{row} for each item (Quantity ± delta)
-        N->>S: values.append Log rows (one row per item, same BatchID & Timestamp)
-        N-->>U: 200 { success:true, batchId, updatedQuantities }
-    end
+        U->>U: Enter name, select action, attach required photo
+        U->>U: Resize to max 1600px, JPEG quality 0.82
+        U->>N: Multipart form submission
+        N->>N: Validate name, action, photo size and signature
+        N->>B: Upload photo with public access
+        B-->>N: Public photo URL
+        N->>S: Ensure Activity tab and headers exist
+        N->>S: Append one activity row
+        S-->>N: Append result
+        N-->>U: Submission confirmation
 ```
 
-## Key design decisions
+The `Activity` columns are **Time UTC**, **Name**, **Action**, **Photo**,
+**Photo URL**, and **Entry ID**. `Photo` contains an
+`=IMAGE("https://...")` formula; `Photo URL` preserves the public URL separately.
+The backend uses four server-side environment variables:
+`GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_SHEET_ID`, and
+`BLOB_READ_WRITE_TOKEN`. `ADMIN_PASSWORD` is unused.
 
-- **Multi-item cart flow**: users build a running list of items, edit quantities or
-  remove lines, and submit the entire batch in one transaction.
-- **Soft stock validation**: the app never blocks a checkout because of computed
-  stock. It displays a friendly inline confirmation and tags the row with
-  `StockFlag = Discrepancy` in the `Log` tab.
-- **Single batch checkout photo via Vercel Blob**: one camera snap per batch
-  (required for Returns, optional for Take Out/Used Up). The backend uploads it to
-  Vercel Blob and writes `=IMAGE("https://...")` into the Sheet's `Photo URL` column so
-  the live thumbnail renders directly in Google Sheets.
-- **Stock adjustments**: admins can correct stock counts from the Dashboard (`/dashboard`),
-  which records an explicit `Action = StockAdjustment` audit row in the `Log` tab.
-- **Access control**: Zero accounts or sign-ins required for regular users (anyone with the link or QR code can check out items). The Dashboard is protected via an Admin Password and hidden behind a discreet 5-tap header easter egg.
+## Trust and Durability
 
-## Nothing is deployed
+- There is no login; a name does not establish verified identity. Anyone with
+    the app link can submit, and anyone with a public photo URL can view it.
+    Private or sensitive photos should not be used.
+- `IMAGE` is URL-backed, not embedded image storage. Images **must not be
+    deleted unless separately archived**. Excel exports may not embed images;
+    verify exports and archive photos separately.
+- Blob upload and Sheet append are not atomic. If upload succeeds and append
+    fails, an orphan photo is retained rather than deleted.
+- An append timeout has an ambiguous outcome: the row may have been written.
+    Retrying can create a duplicate. Entry IDs support inspection but should not
+    be treated as a guarantee of retry deduplication. There are no automatic retries.
 
-This project has **not** been deployed or connected to any live Google Sheet,
-Vercel project, or domain. See [`docs/admin-guide.md`](./admin-guide.md) for the
-steps to connect credentials and deploy.
+## Verification Status
+
+Use `npm test`, `npm run lint`, and `npm run build` for local checks. They do not
+prove live Google Sheets and Blob integration. No deployment has been
+performed, and no live end-to-end validation is claimed. Follow the
+[setup guide](./admin-guide.md) to configure and verify a real submission.
