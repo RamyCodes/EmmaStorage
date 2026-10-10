@@ -90,6 +90,21 @@ performed as part of this update.
 
 ## Privacy, Retention, and Failures
 
+### Production Photo Upload Errors
+
+For phone access on the deployed Vercel URL, check **Project Settings >
+Environment Variables**: `BLOB_READ_WRITE_TOKEN` must be present for
+**Production**, not only Development or Preview. Connect the public Blob
+store to this project in Storage and use its full read-write token. Do not
+paste credentials into chat. Redeploy after changing environment variables;
+existing deployments keep their original values.
+
+Upload failures display a safe diagnostic code and entry reference:
+`BLOB_TOKEN_MISSING`, `BLOB_ACCESS_DENIED`, `BLOB_STORE_NOT_FOUND`,
+`BLOB_STORE_SUSPENDED`, `BLOB_STORE_ACCESS_MISMATCH`, `BLOB_UNAVAILABLE`, or
+`BLOB_UPLOAD_FAILED`. Share only the code/reference when troubleshooting.
+Successful local uploads do not verify the Production token.
+
 ### Local Certificate Errors
 
 If local photo storage requests fail with `SELF_SIGNED_CERT_IN_CHAIN`, your

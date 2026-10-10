@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { appendActivity, prepareActivitySheet, uploadPhotoToBlob } from "@/lib/activity-store";
 import { matchesPhotoType, validateActivity, type ActivityAction } from "@/lib/activity";
+import { describeBlobFailure } from "@/lib/blob-errors";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -40,12 +41,13 @@ export async function POST(request: Request) {
     await appendActivity({ timestamp, person: (person as string).trim(), action: action as ActivityAction, photoUrl: photoResult.url, id });
     return NextResponse.json({ success: true, id, timestamp });
   } catch (error) {
-    console.error("Activity save failed:", { id, stage, errorType: error instanceof Error ? error.name : "UnknownError" });
+    const diagnostic = stage === "photo" ? describeBlobFailure(error) : null;
+    console.error("Activity save failed:", { id, stage, errorType: error instanceof Error ? error.constructor.name : "UnknownError", code: diagnostic?.code });
     const message = stage === "sheet"
       ? "Could not connect to the activity spreadsheet. Ask the administrator to check Google Sheets access. Your activity was not recorded."
       : stage === "photo"
-        ? "The photo could not be uploaded. Ask the administrator to check Vercel Blob access and storage configuration. Your activity was not recorded."
+        ? `${diagnostic?.message} Your activity was not recorded. Code: ${diagnostic?.code}. Reference: ${id}.`
         : `The photo uploaded, but the activity log could not be confirmed. Ask the administrator to check entry ${id} before retrying to avoid a duplicate.`;
-    return NextResponse.json({ success: false, error: message, reference: id }, { status: 503 });
+    return NextResponse.json({ success: false, error: message, reference: id, code: diagnostic?.code }, { status: 503 });
   }
 }
