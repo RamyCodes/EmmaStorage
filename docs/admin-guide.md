@@ -90,6 +90,20 @@ performed as part of this update.
 
 ## Privacy, Retention, and Failures
 
+### Local Certificate Errors
+
+If local photo storage requests fail with `SELF_SIGNED_CERT_IN_CHAIN`, your
+proxy or antivirus may use a certificate trusted by Windows but not Node.
+The VS Code preview task enables `NODE_USE_SYSTEM_CA=1` on supported Node
+versions (Node 24, or 22.19+). Restart the task after changing its environment.
+For a manually started local server, set this variable in the terminal before
+running `npm run dev`. Never disable TLS verification to work around this.
+
+Save errors identify whether spreadsheet access, photo upload, or log append
+failed. A photo upload has a 20-second enforced deadline; the browser also
+bounds its wait. If log confirmation fails or the connection drops, check the
+entry reference before retrying, because the write may have succeeded.
+
 - No login is required; names are self-reported and identity is not verified.
   Anyone with the app link can submit. Anyone with a public photo URL can view
   that photo. Avoid private or sensitive photos.

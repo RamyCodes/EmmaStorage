@@ -2,6 +2,7 @@ import "server-only";
 import { JWT } from "google-auth-library";
 import { put } from "@vercel/blob";
 import type { ActivityAction, ActivityRecord } from "./activity";
+import { withDeadline } from "./operation-timeout.ts";
 
 let authClient: JWT | undefined;
 
@@ -22,7 +23,7 @@ function getGoogleAuth() {
 async function sheetRequest(path: string, method = "GET", body?: unknown) {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
   if (!spreadsheetId) throw new Error("Missing GOOGLE_SHEET_ID.");
-  const { token } = await getGoogleAuth().getAccessToken();
+  const { token } = await withDeadline("Google authentication", () => getGoogleAuth().getAccessToken());
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}${path}`,
     {
@@ -67,12 +68,13 @@ export async function appendActivity(entry: {
 }
 
 export async function uploadPhotoToBlob({ file, fileName }: { file: Buffer; fileName: string }) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN?.trim()) throw new Error("Missing BLOB_READ_WRITE_TOKEN.");
-  return put(fileName, file, {
+  const token = process.env.BLOB_READ_WRITE_TOKEN?.trim();
+  if (!token) throw new Error("Missing BLOB_READ_WRITE_TOKEN.");
+  return withDeadline("Photo upload", (signal) => put(fileName, file, {
     access: "public",
-    token: process.env.BLOB_READ_WRITE_TOKEN.trim(),
-    abortSignal: AbortSignal.timeout(20000),
-  });
+    token,
+    abortSignal: signal,
+  }));
 }
 
 export async function getActivities(): Promise<ActivityRecord[]> {

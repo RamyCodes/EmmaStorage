@@ -5,6 +5,11 @@
 			"label": "Preview EmmaStorage",
 			"type": "shell",
 			"command": "npm run dev -- --port 3100",
+			"options": {
+				"env": {
+					"NODE_USE_SYSTEM_CA": "1"
+				}
+			},
 			"isBackground": true,
 			"problemMatcher": []
 		}

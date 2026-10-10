@@ -94,7 +94,7 @@ export default function ActivityForm() {
     form.set("action", action);
     form.set("photo", photo);
     try {
-      const response = await fetch("/api/transaction", { method: "POST", body: form });
+      const response = await fetch("/api/transaction", { method: "POST", body: form, signal: AbortSignal.timeout(110000) });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.success) throw new Error(result?.error || "Could not save. Check your connection and try again.");
       setSavedTime(new Date(result.timestamp).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }));
@@ -102,7 +102,9 @@ export default function ActivityForm() {
       setPhoto(null);
       setPreview("");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Could not save your activity.");
+      setError(error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError" || error instanceof TypeError)
+        ? "The server response could not be confirmed. Check the activity log with the administrator before retrying to avoid a duplicate."
+        : error instanceof Error ? error.message : "Could not save your activity.");
       setStatus("idle");
     } finally {
       submitLock.current = false;
